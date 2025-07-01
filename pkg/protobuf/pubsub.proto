@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package pubsub.v1;
+
+option go_package = "github.com/iamBelugaa/grpc-pubsub;pubsubpb";
+
+enum ResponseStatus {
+  UNSPECIFIED = 0;
+  OK = 1;
+  ERROR = 2;
+}
+
+service PubSubService {
+  rpc Publish(PublishRequest) returns (PublishResponse) {};
+  rpc Subscribe(SubscribeRequest) returns (stream PayloadStream) {}
+  rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse) {}
+}
+
+message PublishRequest {
+  string topic = 1;
+  bytes payload = 2;
+}
+
+message PublishResponse {
+  ResponseStatus status = 1;
+}
+
+message SubscribeRequest {
+  string topic = 1;
+}
+
+message PayloadStream {
+  string topic = 1;
+  bytes payload = 2;
+}
+
+message UnsubscribeRequest {
+  string topic = 1;
+}
+
+message UnsubscribeResponse{
+  ResponseStatus status = 1;
+}
