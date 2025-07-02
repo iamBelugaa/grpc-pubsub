@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -16,11 +17,14 @@ type Service struct {
 	addr     string
 	listener net.Listener
 	server   *grpc.Server
+	context  context.Context
+	cancel   context.CancelFunc
 	log      *zap.SugaredLogger
 }
 
-func NewService(addr string, logger *zap.SugaredLogger) *Service {
-	return &Service{addr: addr, log: logger}
+func NewService(addr string, logger *zap.SugaredLogger) (context.Context, *Service) {
+	context, cancel := context.WithCancel(context.Background())
+	return context, &Service{addr: addr, cancel: cancel, context: context}
 }
 
 func (s *Service) ListenAndServe(pubsubService pubsubpb.PubSubServiceServer) error {
@@ -53,10 +57,12 @@ func (s *Service) ListenAndServe(pubsubService pubsubpb.PubSubServiceServer) err
 
 	select {
 	case err := <-serverErrors:
+		s.cancel()
 		s.log.Infow("received server error", "error", err)
 		return fmt.Errorf("server error: %w", err)
 
 	case sig := <-shutdownCh:
+		s.cancel()
 		s.log.Infow("shutting down server signal received", "signal", sig)
 
 		if err := s.listener.Close(); err != nil {
@@ -67,10 +73,12 @@ func (s *Service) ListenAndServe(pubsubService pubsubpb.PubSubServiceServer) err
 		s.log.Infow("shutdown complete with signal", "signal", sig)
 	}
 
+	s.cancel()
 	return nil
 }
 
 func (s *Service) Stop() error {
+	s.cancel()
 	s.log.Infow("shutting down server", "addr", s.addr)
 
 	if err := s.listener.Close(); err != nil {
