@@ -6,11 +6,12 @@ import (
 	"sync"
 	"sync/atomic"
 
-	pubsubpb "github.com/iamBelugaa/grpc-pubsub/internal/generated/__proto__"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	pubsubpb "github.com/iamBelugaa/grpc-pubsub/internal/generated/__proto__"
 )
 
 // Subscriber represents a single subscriber with an ID and a gRPC stream.
@@ -19,8 +20,8 @@ type Subscriber struct {
 	stream grpc.ServerStreamingServer[pubsubpb.PayloadStream]
 }
 
-// Service implements the PubSub service with subscriber tracking.
-type Service struct {
+// broker implements the PubSub service with subscriber tracking.
+type broker struct {
 	mu          sync.RWMutex
 	context     context.Context
 	log         *zap.SugaredLogger
@@ -28,9 +29,9 @@ type Service struct {
 	pubsubpb.UnimplementedPubSubServiceServer
 }
 
-// NewService initializes the broker Service.
-func NewService(context context.Context, logger *zap.SugaredLogger) *Service {
-	return &Service{
+// New initializes the broker Service.
+func New(context context.Context, logger *zap.SugaredLogger) *broker {
+	return &broker{
 		log:         logger,
 		context:     context,
 		subscribers: make(map[string][]*Subscriber),
@@ -38,7 +39,7 @@ func NewService(context context.Context, logger *zap.SugaredLogger) *Service {
 }
 
 // Publish sends the payload to all subscribers of the specified topic.
-func (s *Service) Publish(ctx context.Context, req *pubsubpb.PublishRequest) (*pubsubpb.PublishResponse, error) {
+func (s *broker) Publish(ctx context.Context, req *pubsubpb.PublishRequest) (*pubsubpb.PublishResponse, error) {
 	s.log.Infow("publish request received", "topic", req.Topic)
 
 	s.mu.RLock()
@@ -67,16 +68,14 @@ func (s *Service) Publish(ctx context.Context, req *pubsubpb.PublishRequest) (*p
 	}
 
 	if errorCount > 0 {
-		return &pubsubpb.PublishResponse{
-			Status: ToString(pubsubpb.ResponseStatus_ERROR),
-		}, status.Errorf(codes.DataLoss, "failed to send payload to %d streams", errorCount)
+		return nil, status.Errorf(codes.DataLoss, "failed to send payload to %d streams", errorCount)
 	}
 
 	return &pubsubpb.PublishResponse{Status: ToString(pubsubpb.ResponseStatus_OK)}, nil
 }
 
 // Subscribe adds the subscriber to the topic's list and streams payloads until disconnected.
-func (s *Service) Subscribe(req *pubsubpb.SubscribeRequest, stream grpc.ServerStreamingServer[pubsubpb.PayloadStream]) error {
+func (s *broker) Subscribe(req *pubsubpb.SubscribeRequest, stream grpc.ServerStreamingServer[pubsubpb.PayloadStream]) error {
 	s.log.Infow("subscribe request received", "subscriberId", req.SubscriberId, "topic", req.Topic)
 
 	// Check if subscriber already exists.
@@ -114,7 +113,7 @@ func (s *Service) Subscribe(req *pubsubpb.SubscribeRequest, stream grpc.ServerSt
 }
 
 // Unsubscribe removes a subscriber from the topic.
-func (s *Service) Unsubscribe(ctx context.Context, req *pubsubpb.UnsubscribeRequest) (*pubsubpb.UnsubscribeResponse, error) {
+func (s *broker) Unsubscribe(ctx context.Context, req *pubsubpb.UnsubscribeRequest) (*pubsubpb.UnsubscribeResponse, error) {
 	s.log.Infow("unsubscribe request received", "subscriberId", req.SubscriberId, "topic", req.Topic)
 
 	s.mu.RLock()

@@ -8,13 +8,14 @@ import (
 	"os/signal"
 	"syscall"
 
-	pubsubpb "github.com/iamBelugaa/grpc-pubsub/internal/generated/__proto__"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+
+	pubsubpb "github.com/iamBelugaa/grpc-pubsub/internal/generated/__proto__"
 )
 
-// Service defines the structure for the gRPC server instance.
-type Service struct {
+// server defines the structure for the gRPC server instance.
+type server struct {
 	addr     string
 	listener net.Listener
 	server   *grpc.Server
@@ -23,14 +24,14 @@ type Service struct {
 	log      *zap.SugaredLogger
 }
 
-// NewService initializes and returns a new Service instance with context.
-func NewService(addr string, logger *zap.SugaredLogger) (context.Context, *Service) {
+// New initializes and returns a new Service instance with context.
+func New(addr string, logger *zap.SugaredLogger) (context.Context, *server) {
 	context, cancel := context.WithCancel(context.Background())
-	return context, &Service{addr: addr, cancel: cancel, context: context, log: logger}
+	return context, &server{addr: addr, cancel: cancel, context: context, log: logger}
 }
 
 // ListenAndServe starts the gRPC server and handles graceful shutdown.
-func (s *Service) ListenAndServe(pubsubService pubsubpb.PubSubServiceServer) error {
+func (s *server) ListenAndServe(pubsubService pubsubpb.PubSubServiceServer) error {
 	s.log.Infow("creating grpc server", "addr", s.addr)
 
 	// Create new gRPC server.
@@ -87,7 +88,7 @@ func (s *Service) ListenAndServe(pubsubService pubsubpb.PubSubServiceServer) err
 }
 
 // Stop gracefully shuts down the server and cleans up resources.
-func (s *Service) Stop() error {
+func (s *server) Stop() error {
 	s.cancel()
 	s.log.Infow("shutting down server", "addr", s.addr)
 
