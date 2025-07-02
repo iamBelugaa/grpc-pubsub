@@ -22,7 +22,7 @@ message PublishRequest {
 }
 
 message PublishResponse {
-  ResponseStatus status = 1;
+  string status = 1;
 }
 
 message SubscribeRequest {
@@ -41,5 +41,5 @@ message UnsubscribeRequest {
 }
 
 message UnsubscribeResponse{
-  ResponseStatus status = 1;
+  string status = 1;
 }
