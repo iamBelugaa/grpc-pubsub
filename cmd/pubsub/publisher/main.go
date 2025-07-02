@@ -37,11 +37,11 @@ func main() {
 	scanner.Scan()
 	username := scanner.Text()
 
-	fmt.Println("Type messages (press Enter to send, 'quit' to exit):")
-
 	for {
+		fmt.Print("Type messages (press Enter to send, 'quit' to exit): ")
 		scanner.Scan()
 		text := scanner.Text()
+		println()
 
 		if text == "quit" {
 			break
