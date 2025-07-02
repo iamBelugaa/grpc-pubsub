@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// Service defines the structure for the gRPC server instance.
 type Service struct {
 	addr     string
 	listener net.Listener
@@ -22,15 +23,20 @@ type Service struct {
 	log      *zap.SugaredLogger
 }
 
+// NewService initializes and returns a new Service instance with context.
 func NewService(addr string, logger *zap.SugaredLogger) (context.Context, *Service) {
 	context, cancel := context.WithCancel(context.Background())
-	return context, &Service{addr: addr, cancel: cancel, context: context}
+	return context, &Service{addr: addr, cancel: cancel, context: context, log: logger}
 }
 
+// ListenAndServe starts the gRPC server and handles graceful shutdown.
 func (s *Service) ListenAndServe(pubsubService pubsubpb.PubSubServiceServer) error {
 	s.log.Infow("creating grpc server", "addr", s.addr)
 
+	// Create new gRPC server.
 	server := grpc.NewServer()
+
+	// Start listening on the configured address.
 	listener, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		return err
@@ -38,16 +44,18 @@ func (s *Service) ListenAndServe(pubsubService pubsubpb.PubSubServiceServer) err
 
 	s.server = server
 	s.listener = listener
-
 	s.log.Infow("grpc server created successfully", "addr", s.addr)
 
+	// Register the PubSub service with the gRPC server
 	pubsubpb.RegisterPubSubServiceServer(server, pubsubService)
 	s.log.Infow("pubsub service registered")
 
+	// Channels to handle server errors and OS shutdown signals.
 	serverErrors := make(chan error, 1)
 	shutdownCh := make(chan os.Signal, 1)
 	signal.Notify(shutdownCh, syscall.SIGINT, syscall.SIGTERM)
 
+	// Run the gRPC server.
 	go func() {
 		s.log.Infow("starting grpc server", "addr", s.addr)
 		if err := s.server.Serve(s.listener); err != nil {
@@ -55,6 +63,7 @@ func (s *Service) ListenAndServe(pubsubService pubsubpb.PubSubServiceServer) err
 		}
 	}()
 
+	// Wait for server error or shutdown signal.
 	select {
 	case err := <-serverErrors:
 		s.cancel()
@@ -77,6 +86,7 @@ func (s *Service) ListenAndServe(pubsubService pubsubpb.PubSubServiceServer) err
 	return nil
 }
 
+// Stop gracefully shuts down the server and cleans up resources.
 func (s *Service) Stop() error {
 	s.cancel()
 	s.log.Infow("shutting down server", "addr", s.addr)

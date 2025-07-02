@@ -75,6 +75,44 @@ func (s *Service) Publish(ctx context.Context, req *pubsubpb.PublishRequest) (*p
 	return &pubsubpb.PublishResponse{Status: ToString(pubsubpb.ResponseStatus_OK)}, nil
 }
 
+// Subscribe adds the subscriber to the topic's list and streams payloads until disconnected.
+func (s *Service) Subscribe(req *pubsubpb.SubscribeRequest, stream grpc.ServerStreamingServer[pubsubpb.PayloadStream]) error {
+	s.log.Infow("subscribe request received", "subscriberId", req.SubscriberId, "topic", req.Topic)
+
+	// Check if subscriber already exists.
+	s.mu.RLock()
+	exists := slices.ContainsFunc(s.subscribers[req.Topic], func(e *Subscriber) bool {
+		return e.id == req.SubscriberId
+	})
+	s.mu.RUnlock()
+
+	if exists {
+		s.log.Infow("already subscribed to topic", "subscriberId", req.SubscriberId, "topic", req.Topic)
+		return nil
+	}
+
+	// Register new subscriber.
+	s.mu.Lock()
+	subscriber := &Subscriber{id: req.SubscriberId, stream: stream}
+	s.subscribers[req.Topic] = append(s.subscribers[req.Topic], subscriber)
+	s.mu.Unlock()
+
+	s.log.Infow("subscriber add to list", "subscriberId", req.SubscriberId, "topic", req.Topic)
+
+	// Wait for disconnection or shutdown.
+	for {
+		select {
+		case <-stream.Context().Done():
+			s.log.Infow("stream ended", "subscriberId", req.SubscriberId, "topic", req.Topic)
+			return stream.Context().Err()
+
+		case <-s.context.Done():
+			s.log.Infow("broker closed", "subscriberId", req.SubscriberId, "topic", req.Topic)
+			return s.context.Err()
+		}
+	}
+}
+
 // Unsubscribe removes a subscriber from the topic.
 func (s *Service) Unsubscribe(ctx context.Context, req *pubsubpb.UnsubscribeRequest) (*pubsubpb.UnsubscribeResponse, error) {
 	s.log.Infow("unsubscribe request received", "subscriberId", req.SubscriberId, "topic", req.Topic)
