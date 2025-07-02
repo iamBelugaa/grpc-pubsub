@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"time"
 
 	"github.com/iamBelugaa/grpc-pubsub/internal/consumer"
 	"github.com/iamBelugaa/grpc-pubsub/pkg/logger"
@@ -30,11 +29,8 @@ func main() {
 		}
 	}()
 
-	// Subscribe to topics.
-	consumer.Subscribe(context.Background(), "kubernetes")
-	time.Sleep(time.Second * 2)
+	// Subscribe to the chat room
+	consumer.Subscribe(context.Background(), "group:chat")
 
-	// Unsubscribe from a topic.
-	consumer.Unsubscribe(context.Background(), "kubernetes")
-	time.Sleep(time.Second * 3)
+	select {}
 }

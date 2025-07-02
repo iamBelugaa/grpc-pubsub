@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"context"
-	"time"
+	"fmt"
+	"os"
 
 	"github.com/iamBelugaa/grpc-pubsub/internal/publisher"
 	"github.com/iamBelugaa/grpc-pubsub/pkg/logger"
@@ -30,15 +32,22 @@ func main() {
 		}
 	}()
 
-	time.Sleep(time.Second * 2)
+	fmt.Print("Enter your username: ")
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	username := scanner.Text()
 
-	message := []byte("New release: Kubernetes 1.30 is out")
-	publisher.Publish(context.Background(), "kubernetes", message)
-	publisher.Publish(context.Background(), "kubernetes", message)
-	publisher.Publish(context.Background(), "kubernetes", message)
+	fmt.Println("Type messages (press Enter to send, 'quit' to exit):")
 
-	time.Sleep(time.Second * 4)
-	publisher.Publish(context.Background(), "kubernetes", message)
-	publisher.Publish(context.Background(), "kubernetes", message)
-	publisher.Publish(context.Background(), "kubernetes", message)
+	for {
+		scanner.Scan()
+		text := scanner.Text()
+
+		if text == "quit" {
+			break
+		}
+
+		message := fmt.Sprintf("%s: %s", username, text)
+		publisher.Publish(context.Background(), "group:chat", []byte(message))
+	}
 }
