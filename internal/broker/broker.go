@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -72,4 +73,29 @@ func (s *Service) Publish(ctx context.Context, req *pubsubpb.PublishRequest) (*p
 	}
 
 	return &pubsubpb.PublishResponse{Status: ToString(pubsubpb.ResponseStatus_OK)}, nil
+}
+
+// Unsubscribe removes a subscriber from the topic.
+func (s *Service) Unsubscribe(ctx context.Context, req *pubsubpb.UnsubscribeRequest) (*pubsubpb.UnsubscribeResponse, error) {
+	s.log.Infow("unsubscribe request received", "subscriberId", req.SubscriberId, "topic", req.Topic)
+
+	s.mu.RLock()
+	subscribers := s.subscribers[req.Topic]
+	index := slices.IndexFunc(subscribers, func(e *Subscriber) bool {
+		return e.id == req.SubscriberId
+	})
+	s.mu.RUnlock()
+
+	if index == -1 {
+		s.log.Infow("subscriber not found", "subscriberId", req.SubscriberId, "topic", req.Topic)
+		return nil, status.Errorf(codes.NotFound, "subscriber with id %s doesn't exists", req.SubscriberId)
+	}
+
+	// Remove subscriber.
+	s.mu.Lock()
+	s.subscribers[req.Topic] = slices.Delete(subscribers, index, index+1)
+	s.mu.Unlock()
+
+	s.log.Infow("unsubscribed from topic", "subscriberId", req.SubscriberId, "topic", req.Topic)
+	return &pubsubpb.UnsubscribeResponse{Status: ToString(pubsubpb.ResponseStatus_OK)}, nil
 }
