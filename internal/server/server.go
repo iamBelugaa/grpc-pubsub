@@ -69,3 +69,15 @@ func (s *Service) ListenAndServe(pubsubService pubsubpb.PubSubServiceServer) err
 
 	return nil
 }
+
+func (s *Service) Stop() error {
+	s.log.Infow("shutting down server", "addr", s.addr)
+
+	if err := s.listener.Close(); err != nil {
+		return fmt.Errorf("could not stop listener gracefully: %w", err)
+	}
+	s.server.GracefulStop()
+
+	s.log.Infow("shutdown complete", "addr", s.addr)
+	return nil
+}
