@@ -27,6 +27,7 @@ message PublishResponse {
 
 message SubscribeRequest {
   string topic = 1;
+  string subscriberId = 2;
 }
 
 message PayloadStream {
@@ -36,6 +37,7 @@ message PayloadStream {
 
 message UnsubscribeRequest {
   string topic = 1;
+  string subscriberId = 2;
 }
 
 message UnsubscribeResponse{
