@@ -58,30 +58,6 @@ and forwards the message to each one.
 Each consumer gets a unique ID (UUID) so the broker can track subscriptions
 properly.
 
-## Project Layout
-
-```
-grpc-pubsub/
-├── cmd/pubsub/
-│   ├── broker/main.go      # Broker server application
-│   ├── consumer/main.go    # Test consumer application
-│   └── publisher/main.go   # Test publisher application
-├── internal/
-│   ├── broker/             # Broker implementation
-│   │   ├── broker.go       # Main broker logic
-│   │   └── status.go       # Status enum helpers
-│   ├── consumer/           # Consumer client
-│   │   └── consumer.go     # Consumer implementation
-│   ├── publisher/          # Publisher client
-│   │   └── publisher.go    # Publisher implementation
-│   └── server/             # gRPC server wrapper
-│       └── server.go       # Server setup and lifecycle
-├── pkg/
-│   └── protobuf/
-│       └── pubsub.proto    # gRPC service definition
-├── Makefile                # Build commands
-```
-
 ## Protocol Buffer Definition
 
 The gRPC service is defined in `pkg/protobuf/pubsub.proto` with three main
