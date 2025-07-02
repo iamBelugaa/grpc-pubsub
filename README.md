@@ -43,28 +43,6 @@ The publisher will send several "New release: Kubernetes 1.30 is out" messages
 to the "kubernetes" topic. You'll see the consumer receive these messages in
 real-time.
 
-## Available Commands
-
-### Build and Run
-
-- `make run-broker` - Build and start the message broker
-- `make run-consumer` - Build and start a test consumer
-- `make run-publisher` - Build and start a test publisher
-
-### Build Only
-
-- `make build-broker` - Build the broker binary
-- `make build-consumer` - Build the consumer binary
-- `make build-publisher` - Build the publisher binary
-
-### Development
-
-- `make deps` - Download and verify Go modules
-- `make tidy` - Clean up Go modules
-- `make fmt` - Format all Go code
-- `make clean` - Remove build artifacts
-- `make gen-pb` - Generate Go code from protobuf files
-
 ## How it works
 
 The system uses three gRPC methods defined in `pubsub.proto`:
