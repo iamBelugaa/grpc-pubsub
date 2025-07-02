@@ -1,8 +1,13 @@
-BINARY_NAME := grpc-pubsub
-MAIN_PACKAGE ?= ./cmd/pubsub/main.go
+BROKER_BINARY_NAME := grpc-pubsub-broker
+BROKER_MAIN_PACKAGE := ./cmd/pubsub/broker/main.go
+
+CONSUMER_BINARY_NAME := grpc-pubsub-consumer
+CONSUMER_MAIN_PACKAGE := ./cmd/pubsub/consumer/main.go
+
+PUBLISHER_BINARY_NAME := grpc-pubsub-publisher
+PUBLISHER_MAIN_PACKAGE := ./cmd/pubsub/publisher/main.go
 
 BUILD_DIR := dist
-EXTRA_BUILD_FLAGS ?=
 BUILD_FLAGS := -v -ldflags="-s -w"
 
 PROTO_DIR := pkg/protobuf
@@ -10,21 +15,37 @@ PROTO_OUT_DIR := internal/generated/__proto__
 MODULE_PATH := github.com/iamBelugaa/grpc-pubsub
 
 # ANSI Color Codes
-GREEN := \033[32m
-YELLOW := \033[33m
 CYAN := \033[36m
 RESET := \033[0m
+GREEN := \033[32m
+YELLOW := \033[33m
 
-all: build run
-
-build: tidy gen-pb
-	@echo "$(CYAN) Building $(BINARY_NAME) for $(shell go env GOOS)/$(shell go env GOARCH)...$(RESET)"
-	@GOOS=$(shell go env GOOS) GOARCH=$(shell go env GOARCH) go build $(BUILD_FLAGS) $(EXTRA_BUILD_FLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PACKAGE)
+build-broker: tidy gen-pb
+	@echo "$(CYAN) Building $(BROKER_BINARY_NAME) for $(shell go env GOOS)/$(shell go env GOARCH)...$(RESET)"
+	@GOOS=$(shell go env GOOS) GOARCH=$(shell go env GOARCH) go build $(BUILD_FLAGS) -o $(BUILD_DIR)/$(BROKER_BINARY_NAME) $(BROKER_MAIN_PACKAGE)
 	@echo "$(GREEN) Build complete.$(RESET)"
 
-run: build
-	@echo "$(CYAN) Running $(BINARY_NAME) $(RUN_ARGS)...$(RESET)"
-	@$(BUILD_DIR)/$(BINARY_NAME) $(RUN_ARGS)
+run-broker: build-broker
+	@echo "$(CYAN) Running $(BROKER_BINARY_NAME)...$(RESET)"
+	@$(BUILD_DIR)/$(BROKER_BINARY_NAME)
+
+build-consumer: tidy gen-pb
+	@echo "$(CYAN) Building $(CONSUMER_BINARY_NAME) for $(shell go env GOOS)/$(shell go env GOARCH)...$(RESET)"
+	@GOOS=$(shell go env GOOS) GOARCH=$(shell go env GOARCH) go build $(BUILD_FLAGS) -o $(BUILD_DIR)/$(CONSUMER_BINARY_NAME) $(CONSUMER_MAIN_PACKAGE)
+	@echo "$(GREEN) Build complete.$(RESET)"
+
+run-consumer: build-consumer
+	@echo "$(CYAN) Running $(CONSUMER_BINARY_NAME)...$(RESET)"
+	@$(BUILD_DIR)/$(CONSUMER_BINARY_NAME)
+
+build-publisher: tidy gen-pb
+	@echo "$(CYAN) Building $(PUBLISHER_BINARY_NAME) for $(shell go env GOOS)/$(shell go env GOARCH)...$(RESET)"
+	@GOOS=$(shell go env GOOS) GOARCH=$(shell go env GOARCH) go build $(BUILD_FLAGS) -o $(BUILD_DIR)/$(PUBLISHER_BINARY_NAME) $(PUBLISHER_MAIN_PACKAGE)
+	@echo "$(GREEN) Build complete.$(RESET)"
+
+run-publisher: build-publisher
+	@echo "$(CYAN) Running $(PUBLISHER_BINARY_NAME)...$(RESET)"
+	@$(BUILD_DIR)/$(PUBLISHER_BINARY_NAME)
 
 tidy:
 	@echo "$(CYAN) Tidying Go modules...$(RESET)"
